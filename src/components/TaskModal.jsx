@@ -1,48 +1,75 @@
 
 import { useState } from 'react';
 
-function TaskModal({ onClose, onSave }) {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState('Medium');
-  const [dueDate, setDueDate] = useState('');
+function TaskModal({ onClose, onSave, initialTask = null }) {
+  const [title, setTitle] = useState(initialTask?.title || '');
+  const [description, setDescription] = useState(
+    initialTask?.description || ''
+  );
+  const [priority, setPriority] = useState(
+    initialTask?.priority || 'Medium'
+  );
+  const [dueDate, setDueDate] = useState(
+    initialTask?.dueDate || ''
+  );
 
-  function handleSubmit(e) {
+  const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const isEditing = Boolean(initialTask);
+
+  async function handleSubmit(e) {
     e.preventDefault();
 
     if (!title.trim()) {
       return;
     }
 
-    const newTask = {
-      id: Date.now(),
-      title,
-      description,
+    setSaving(true);
+    setErrorMessage('');
+
+    const taskData = {
+      title: title.trim(),
+      description: description.trim(),
       priority,
       dueDate,
-      completed: false,
     };
 
-    onSave(newTask);
-    onClose();
+    const success = await onSave(
+      taskData,
+      initialTask?.id || null
+    );
+
+    if (success) {
+      onClose();
+    } else {
+      setErrorMessage('Unable to save task. Please try again.');
+    }
+
+    setSaving(false);
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={saving ? undefined : onClose}>
       <div
         className="task-modal"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-header">
           <div>
-            <h4>Create New Task</h4>
-            <p>Add a task to your workspace.</p>
+            <h4>{isEditing ? 'Edit Task' : 'Create New Task'}</h4>
+            <p>
+              {isEditing
+                ? 'Update your task details.'
+                : 'Add a task to your workspace.'}
+            </p>
           </div>
 
           <button
             type="button"
             className="modal-close"
             onClick={onClose}
+            disabled={saving}
           >
             &times;
           </button>
@@ -58,6 +85,7 @@ function TaskModal({ onClose, onSave }) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
+              disabled={saving}
             />
           </div>
 
@@ -69,6 +97,7 @@ function TaskModal({ onClose, onSave }) {
               placeholder="What needs to be done?"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              disabled={saving}
             />
           </div>
 
@@ -79,6 +108,7 @@ function TaskModal({ onClose, onSave }) {
                 className="form-select"
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
+                disabled={saving}
               >
                 <option>Low</option>
                 <option>Medium</option>
@@ -93,21 +123,37 @@ function TaskModal({ onClose, onSave }) {
                 className="form-control"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
+                disabled={saving}
               />
             </div>
           </div>
+
+          {errorMessage && (
+            <div className="alert alert-danger py-2">
+              {errorMessage}
+            </div>
+          )}
 
           <div className="modal-footer">
             <button
               type="button"
               className="btn btn-light"
               onClick={onClose}
+              disabled={saving}
             >
               Cancel
             </button>
 
-            <button type="submit" className="btn btn-success">
-              Create Task
+            <button
+              type="submit"
+              className="btn btn-success"
+              disabled={saving}
+            >
+              {saving
+                ? 'Saving...'
+                : isEditing
+                  ? 'Save Changes'
+                  : 'Create Task'}
             </button>
           </div>
         </form>

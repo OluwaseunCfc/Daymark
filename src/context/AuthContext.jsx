@@ -1,15 +1,13 @@
 
-import { createContext, useContext, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-
-const AuthContext = createContext();
+import { AuthContext } from './auth-context';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check whether a user is already logged in
     async function getInitialSession() {
       const { data, error } = await supabase.auth.getSession();
 
@@ -23,7 +21,6 @@ export function AuthProvider({ children }) {
 
     getInitialSession();
 
-    // Listen for login, logout and session changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -34,18 +31,11 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const value = {
-    user,
-    loading,
-  };
+  const value = { user, loading };
 
   return (
     <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth() {
-  return useContext(AuthContext);
 }
